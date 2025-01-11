@@ -3,6 +3,7 @@
 This is a python project using mainly requests library to interact with multiple Fortigates REST APIs.
 
 Features:
+
 ✅ Manage MFA authentication (username + password + fortitoken)
 
 ✅ Store cookies for all fortigate portals in pkl files and ensuring sessions are well-handled
