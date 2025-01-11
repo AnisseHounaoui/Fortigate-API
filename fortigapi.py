@@ -104,6 +104,21 @@ def get_info(fg_url, cookies):
     print(f"\nSerial Number: {serial_num}")
     print(f"\nVersion: {version} build {build}")
 
+# Fetch SSL-VPN settings
+def get_ssl_vpn(fg_url, cookies):
+    ha_url = fg_url + "/api/v2/cmdb/vpn.ssl/settings?datasource=1&vdom=root&with_meta=1"
+
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False)
+    allowed_hosts = response.json()["results"]["source-address"]
+    #if allowed_hosts[0]['name'] == "all":
+
+    allowed_dict = {"Allowed groups": []}
+    for i in range(len(allowed_hosts)):
+        allowed_dict["Allowed groups"].append(allowed_hosts[i]["name"])
+    print(f"\nAccess allowed to :{allowed_dict}")
 # Fetch HA status
 def checksum_compare(result):
     checksum_primary = result[0]["checksum"]["all"]
@@ -117,18 +132,21 @@ def get_ha(fg_url, cookies):
     }
     response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False)
     results = response.json()['results']
-    if checksum_compare(results):
-        print("Fortigates are Synchronized")
+    if results:
+        if checksum_compare(results):
+            print("Fortigates are Synchronized")
+        else:
+            print("Fortigates are NOT Synchronized")
     else:
-        print("Fortigates are NOT Synchronized")
-
+        print("HA config not found")
 
 def get_config(config):
     fg_cookies = logincheck(config)
     fg_url = config["fg_url55"]
     print(f"\nFetching configuration for {fg_url}")
-    print(get_info(fg_url,fg_cookies))
-    print(get_ha(fg_url,fg_cookies))
+    get_info(fg_url,fg_cookies)
+    get_ha(fg_url,fg_cookies)
+    get_ssl_vpn(fg_url, fg_cookies)
 
 
 def main():
@@ -137,7 +155,7 @@ def main():
     #fg_url  = config["fg_url"]
     #fortitoken = int(input("Enter fortitoken:"))
 
-    print(get_config(config))
+    get_config(config)
 
 if __name__ == '__main__':
     main()
