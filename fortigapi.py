@@ -110,11 +110,14 @@ def get_ips_profiles(fg_url, cookies):
     }
     response = requests.request("GET", ips_url, headers=headers, cookies=cookies, verify=False)
 
-    ips_profiles = response.json()['results']
+    ips_profiles = response.json().get('results')
     for i in range(len(ips_profiles)):
-        if ips_profiles[i]['q_ref'] > 0: #ips applied at least on 1 resource
-            print("\n" + ips_profiles[i]['name']+ ":")
-            for entry in ips_profiles[i]['entries']:
+        if ips_profiles[i].get('q_ref') is None: #ips applied at least on 1 resource
+            print("IPS profiles config not found")
+            pass
+        else:
+            print("\n" + ips_profiles[i].get('name') + ":")
+            for entry in ips_profiles[i].get('entries'):
                 if entry.get("location") is None:
                     pass
                 else:
@@ -139,7 +142,7 @@ def get_ssl_vpn(fg_url, cookies):
         'Content-Type': 'application/json'
     }
     response = requests.request("GET", vpn_url, headers=headers, cookies=cookies, verify=False)
-    allowed_hosts = response.json()["results"]["source-address"]
+    allowed_hosts = response.json()["results"].get("source-address")
     #if allowed_hosts[0]['name'] == "all":
 
     allowed_dict = {"Allowed groups": []}
