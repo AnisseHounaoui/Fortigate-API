@@ -47,9 +47,8 @@ def load_cookies(session, cookie_file, fg_url):
 
 
 
-def logincheck(config):
+def logincheck(fg_url,config):
 
-    fg_url = config["fg_url55"]
     fg_url_login = fg_url + "/logincheck"
     session = requests.session()
 
@@ -104,14 +103,44 @@ def get_info(fg_url, cookies):
     print(f"\nSerial Number: {serial_num}")
     print(f"\nVersion: {version} build {build}")
 
-# Fetch SSL-VPN settings
-def get_ssl_vpn(fg_url, cookies):
-    ha_url = fg_url + "/api/v2/cmdb/vpn.ssl/settings?datasource=1&vdom=root&with_meta=1"
+# Fetch IPS profiles settings
+def get_ips_profiles(fg_url, cookies):
+    ips_url = fg_url + "/api/v2/cmdb/ips/sensor?with_meta=1&datasource=1&skip=1&vdom=root"
 
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False)
+    response = requests.request("GET", ips_url, headers=headers, cookies=cookies, verify=False)
+
+    ips_profiles = response.json()['results']
+    for i in range(len(ips_profiles)):
+        if ips_profiles[i]['q_ref'] > 0: #ips applied at least on 1 resource
+            print("\n" + ips_profiles[i]['name']+ ":")
+            for entry in ips_profiles[i]['entries']:
+                if entry.get("location") is None:
+                    pass
+                else:
+                    ips_location = entry.get("location").split()
+                    severity = entry.get("severity").split()
+                    action = entry.get("action")
+
+                    packet_logging = entry.get("log-packet")
+                    print(f"Location: {str(ips_location)}")
+                    print(f"Severity: {str(severity)}")
+                    print(f"Action: {action}")
+                    print(f"Packet logging: {packet_logging}")
+                    print("----------------------------")
+                    #print(str(ips_location) + " , " + str(severity) + " , " + action + " , "+ packet_logging)
+
+
+# Fetch SSL-VPN settings
+def get_ssl_vpn(fg_url, cookies):
+    vpn_url = fg_url + "/api/v2/cmdb/vpn.ssl/settings?datasource=1&vdom=root&with_meta=1"
+
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request("GET", vpn_url, headers=headers, cookies=cookies, verify=False)
     allowed_hosts = response.json()["results"]["source-address"]
     #if allowed_hosts[0]['name'] == "all":
 
@@ -119,6 +148,7 @@ def get_ssl_vpn(fg_url, cookies):
     for i in range(len(allowed_hosts)):
         allowed_dict["Allowed groups"].append(allowed_hosts[i]["name"])
     print(f"\nAccess allowed to :{allowed_dict}")
+
 # Fetch HA status
 def checksum_compare(result):
     checksum_primary = result[0]["checksum"]["all"]
@@ -140,22 +170,22 @@ def get_ha(fg_url, cookies):
     else:
         print("HA config not found")
 
-def get_config(config):
-    fg_cookies = logincheck(config)
-    fg_url = config["fg_url55"]
+def get_config(fg_url,config):
+    fg_cookies = logincheck(fg_url,config)
     print(f"\nFetching configuration for {fg_url}")
     get_info(fg_url,fg_cookies)
     get_ha(fg_url,fg_cookies)
-    get_ssl_vpn(fg_url, fg_cookies)
-
+    get_ssl_vpn(fg_url,fg_cookies)
+    get_ips_profiles(fg_url,fg_cookies)
 
 def main():
 
     config = load_config()
     #fg_url  = config["fg_url"]
     #fortitoken = int(input("Enter fortitoken:"))
+    fg_url = config["fg_url55"]
 
-    get_config(config)
+    get_config(fg_url,config)
 
 if __name__ == '__main__':
     main()
