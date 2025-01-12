@@ -112,7 +112,7 @@ def get_ips_profiles(fg_url, cookies):
 
     ips_profiles = response.json().get('results')
     for i in range(len(ips_profiles)):
-        if ips_profiles[i].get('q_ref') is None: #ips applied at least on 1 resource
+        if ips_profiles[i].get('q_ref') is None:  #ips applied at least on 1 resource
             print("IPS profiles config not found")
             pass
         else:
