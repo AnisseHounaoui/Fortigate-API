@@ -2,6 +2,9 @@ import requests
 import os
 import pickle
 import json
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def load_config():
@@ -25,27 +28,22 @@ def load_cookies(session, cookie_file, fg_url):
             cookies = pickle.load(f)
             f.close()
         # verify that cookies exists and valid with test GET
-        test_url = fg_url + "/api/v2/monitor/system/ha-checksums?vdom=root"
+        test_url = fg_url + "/api/v2/cmdb/system/vdom"
         headers = {
             'Content-Type': 'application/json'
         }
         session.cookies.update(cookies)
         response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False)
         try:
-            print(f"test response: {response.json()}")
             if response.json():  # verifying that response content is returned = cookies are valid
-
                 return session.cookies
             else:
                 print("No results found in response.")
                 return None
         except requests.exceptions.JSONDecodeError:
-            print(f"Error decoding JSON response from {test_url}: {response.text}")
             return None
     else:
         return None
-
-
 
 def logincheck(fg_url,config):
 
@@ -55,7 +53,7 @@ def logincheck(fg_url,config):
     cookie_file = f"{fg_url.split('//')[1].split(':')[0]}_cookies.pkl"
     cookies = load_cookies(session, cookie_file, fg_url)
 
-    print(f"Cookies loaded: {cookies}")
+    #print(f"Cookies loaded: {cookies}")
 
     # Invalid or missing (if first time) cookies, initial login
     if cookies is None:
@@ -75,14 +73,14 @@ def logincheck(fg_url,config):
         payload["token_code"] = fortitoken
         response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False)
 
-        if response2.status_code == 200:
+        if response2.status_code == 200: #need another condition to save only valid cookies
             save_cookies(session, cookie_file)
         else:
             print(f"connection not established: {response2.status_code}")
     else:
         session.cookies = cookies
 
-    print(f"Final cookies: {session.cookies}")
+    #print(f"Final cookies: {session.cookies}")
     return session.cookies
 
 # FG version
@@ -99,9 +97,9 @@ def get_info(fg_url, cookies):
     version = response.json()['version']
     build = response.json()['build']
 
-    print(f"\nDevice infos: {fg_url}")
-    print(f"\nSerial Number: {serial_num}")
-    print(f"\nVersion: {version} build {build}")
+    print(f"\nDevice infos:")
+    print(f"Serial Number: {serial_num}")
+    print(f"Version: {version} build {build}")
 
 # Fetch IPS profiles settings
 def get_ips_profiles(fg_url, cookies):
@@ -164,9 +162,9 @@ def get_ha(fg_url, cookies):
     results = response.json()['results']
     if results:
         if checksum_compare(results):
-            print("Fortigates are Synchronized")
+            print("\nFortigates are Synchronized\n")
         else:
-            print("Fortigates are NOT Synchronized")
+            print("\nFortigates are NOT Synchronized\n")
     else:
         print("HA config not found")
 
