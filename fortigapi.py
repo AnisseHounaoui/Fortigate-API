@@ -33,15 +33,19 @@ def load_cookies(session, cookie_file, fg_url):
             'Content-Type': 'application/json'
         }
         session.cookies.update(cookies)
-        response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False)
         try:
-            if response.json():  # verifying that response content is returned = cookies are valid
-                return session.cookies
-            else:
-                print("No results found in response.")
+            response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False, timeout=5)
+
+            try:
+                if response.json():  # verifying that response content is returned = cookies are valid
+                    return session.cookies
+                else:
+                    print("No results found in response.")
+                    return None
+            except requests.exceptions.JSONDecodeError:
                 return None
-        except requests.exceptions.JSONDecodeError:
-            return None
+        except requests.exceptions.Timeout:
+            print("The request timed out after 5 seconds.")
     else:
         return None
 
@@ -67,11 +71,17 @@ def logincheck(fg_url,config):
             'Content-Type': 'application/json'
         }
 
-        response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False)
+        response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False, timeout=5)
         session.cookies.update(response1.cookies)
-        fortitoken = int(input("Enter fortitoken:"))
-        payload["token_code"] = fortitoken
-        response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False)
+
+        while True:
+            fortitoken = input("Enter fortitoken: ")
+            if fortitoken.isdigit() and len(fortitoken) == 6:
+                payload["token_code"] = int(fortitoken)
+                break
+            print("Invalid fortitoken format.")
+
+        response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False, timeout=5)
 
         if response2.status_code == 200: #need another condition to save only valid cookies
             save_cookies(session, cookie_file)
@@ -90,7 +100,7 @@ def get_info(fg_url, cookies):
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False)
+    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
 
     #name = response.json()['results']
     serial_num = response.json()['serial']
@@ -108,7 +118,7 @@ def get_ips_profiles(fg_url, cookies):
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", ips_url, headers=headers, cookies=cookies, verify=False)
+    response = requests.request("GET", ips_url, headers=headers, cookies=cookies, verify=False, timeout=5)
 
     ips_profiles = response.json().get('results')
     for i in range(len(ips_profiles)):
@@ -141,7 +151,7 @@ def get_ssl_vpn(fg_url, cookies):
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", vpn_url, headers=headers, cookies=cookies, verify=False)
+    response = requests.request("GET", vpn_url, headers=headers, cookies=cookies, verify=False, timeout=5)
     allowed_hosts = response.json()["results"].get("source-address")
     #if allowed_hosts[0]['name'] == "all":
 
@@ -161,7 +171,7 @@ def get_ha(fg_url, cookies):
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False)
+    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
     results = response.json()['results']
     if results:
         if checksum_compare(results):
