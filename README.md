@@ -12,6 +12,6 @@ Features:
   
 🔄 Verify if every fortigate is compliant to specific config
 
-🔄 Handle exceptions to eliminate login failures to the portals
+✅ Handle exceptions to minimize login failures to the portals
 
 🔄 Create a GUI using tkinter to display config for all fortigates
