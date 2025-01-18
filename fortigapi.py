@@ -71,22 +71,38 @@ def logincheck(fg_url,config):
             'Content-Type': 'application/json'
         }
 
-        response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False, timeout=5)
-        session.cookies.update(response1.cookies)
+        #response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False, timeout=5)
+        #session.cookies.update(response1.cookies)
 
-        while True:
+        '''while True: #validating fortitoken format before sending the second request
             fortitoken = input("Enter fortitoken: ")
             if fortitoken.isdigit() and len(fortitoken) == 6:
                 payload["token_code"] = int(fortitoken)
                 break
             print("Invalid fortitoken format.")
 
-        response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False, timeout=5)
+        response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False, timeout=5)'''
 
-        if response2.status_code == 200: #need another condition to save only valid cookies
-            save_cookies(session, cookie_file)
-        else:
-            print(f"connection not established: {response2.status_code}")
+        while len(session.cookies.get_dict()) != 2:# for fortitoken to be valid session.cookie should contains 2 cookies
+            fortitoken = input("Enter fortitoken: ")
+            if fortitoken.isdigit() and len(fortitoken) == 6: #validating fortitoken format
+                response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False, timeout=5)
+                session.cookies.update(response1.cookies)
+                #print(session.cookies.get_dict())
+                payload["token_code"] = int(fortitoken)
+                response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False, timeout=5)
+                if len(session.cookies.get_dict()) == 0: #if second response cookies are empty -> invalid fortitoken value
+                    print("Invalid fortitoken value.")
+                    payload.pop("token_code")
+                    session.cookies.clear()
+                elif len(session.cookies.get_dict()) == 2: #if both cookies are present
+                    break
+            else:
+                print("Invalid fortitoken format.")
+
+
+        save_cookies(session, cookie_file)
+
     else:
         session.cookies = cookies
 
@@ -96,20 +112,24 @@ def logincheck(fg_url,config):
 # FG version
 def get_info(fg_url, cookies):
     ha_url = fg_url + "/api/v2/monitor/system/firmware?vdom=root"
-
     headers = {
         'Content-Type': 'application/json'
     }
     response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
 
-    #name = response.json()['results']
-    serial_num = response.json()['serial']
-    version = response.json()['version']
-    build = response.json()['build']
 
-    print(f"\nDevice infos:")
-    print(f"Serial Number: {serial_num}")
-    print(f"Version: {version} build {build}")
+    #name = response.json()['results']
+    json_resp = response.json()
+    serial_num = json_resp.get("serial")
+    version = json_resp.get("version")
+    build = json_resp.get("build")
+    # Only print if values are present
+    if serial_num and version and build:
+        print(f"\nDevice infos:")
+        print(f"Serial Number: {serial_num}")
+        print(f"Version: {version} build {build}")
+    else:
+        pass
 
 # Fetch IPS profiles settings
 def get_ips_profiles(fg_url, cookies):
@@ -122,8 +142,8 @@ def get_ips_profiles(fg_url, cookies):
 
     ips_profiles = response.json().get('results')
     for i in range(len(ips_profiles)):
-        if ips_profiles[i].get('q_ref') is None:  #ips applied at least on 1 resource
-            print("IPS profiles config not found")
+        if ips_profiles[i].get('q_ref') is None or ips_profiles[i].get('q_ref') == 0:  #ips applied at least on 1 resource
+            #print("IPS profiles config not applied to any ressource")
             pass
         else:
             print("\n" + ips_profiles[i].get('name') + ":")
