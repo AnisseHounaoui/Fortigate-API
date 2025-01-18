@@ -57,7 +57,6 @@ def logincheck(fg_url,config):
     cookie_file = f"{fg_url.split('//')[1].split(':')[0]}_cookies.pkl"
     cookies = load_cookies(session, cookie_file, fg_url)
 
-    #print(f"Cookies loaded: {cookies}")
 
     # Invalid or missing (if first time) cookies, initial login
     if cookies is None:
@@ -70,18 +69,6 @@ def logincheck(fg_url,config):
         headers = {
             'Content-Type': 'application/json'
         }
-
-        #response1 = session.post(fg_url_login, headers=headers, data=payload, verify=False, timeout=5)
-        #session.cookies.update(response1.cookies)
-
-        '''while True: #validating fortitoken format before sending the second request
-            fortitoken = input("Enter fortitoken: ")
-            if fortitoken.isdigit() and len(fortitoken) == 6:
-                payload["token_code"] = int(fortitoken)
-                break
-            print("Invalid fortitoken format.")
-
-        response2 = session.post(fg_url_login, headers=headers, cookies=session.cookies, data=payload, verify=False, timeout=5)'''
 
         while len(session.cookies.get_dict()) != 2:# for fortitoken to be valid session.cookie should contains 2 cookies
             fortitoken = input("Enter fortitoken: ")
@@ -99,7 +86,6 @@ def logincheck(fg_url,config):
                     break
             else:
                 print("Invalid fortitoken format.")
-
 
         save_cookies(session, cookie_file)
 
