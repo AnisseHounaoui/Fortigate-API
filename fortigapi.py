@@ -33,19 +33,17 @@ def load_cookies(session, cookie_file, fg_url):
             'Content-Type': 'application/json'
         }
         session.cookies.update(cookies)
+        response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False, timeout=5)
         try:
-            response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False, timeout=5)
-
-            try:
-                if response.json():  # verifying that response content is returned = cookies are valid
-                    return session.cookies
-                else:
-                    print("No results found in response.")
-                    return None
-            except requests.exceptions.JSONDecodeError:
+            if response.json():  # verifying that response content is returned = cookies are valid
+                print(response.json())
+                return session.cookies
+            else:
+                print("No results found in response.")
                 return None
-        except requests.exceptions.Timeout:
-            print("The request timed out after 5 seconds.")
+        except requests.exceptions.JSONDecodeError:
+            return None
+
     else:
         return None
 
@@ -69,7 +67,7 @@ def logincheck(fg_url,config):
         headers = {
             'Content-Type': 'application/json'
         }
-
+        session.cookies.clear()
         while len(session.cookies.get_dict()) != 2:# for fortitoken to be valid session.cookie should contains 2 cookies
             fortitoken = input("Enter fortitoken: ")
             if fortitoken.isdigit() and len(fortitoken) == 6: #validating fortitoken format
@@ -88,11 +86,8 @@ def logincheck(fg_url,config):
                 print("Invalid fortitoken format.")
 
         save_cookies(session, cookie_file)
-
     else:
         session.cookies = cookies
-
-    #print(f"Final cookies: {session.cookies}")
     return session.cookies
 
 # FG version
@@ -101,14 +96,14 @@ def get_info(fg_url, cookies):
     headers = {
         'Content-Type': 'application/json'
     }
-    response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
-
-
+    response = requests.get( ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
     #name = response.json()['results']
-    json_resp = response.json()
-    serial_num = json_resp.get("serial")
-    version = json_resp.get("version")
-    build = json_resp.get("build")
+    try:
+        serial_num = response.json().get('serial')
+        version = response.json().get('version')
+        build = response.json().get('build')
+    except requests.exceptions.JSONDecodeError:
+        return None
     # Only print if values are present
     if serial_num and version and build:
         print(f"\nDevice infos:")
@@ -125,11 +120,12 @@ def get_ips_profiles(fg_url, cookies):
         'Content-Type': 'application/json'
     }
     response = requests.request("GET", ips_url, headers=headers, cookies=cookies, verify=False, timeout=5)
-
-    ips_profiles = response.json().get('results')
+    try:
+        ips_profiles = response.json().get('results')
+    except requests.exceptions.JSONDecodeError:
+        return None
     for i in range(len(ips_profiles)):
         if ips_profiles[i].get('q_ref') is None or ips_profiles[i].get('q_ref') == 0:  #ips applied at least on 1 resource
-            #print("IPS profiles config not applied to any ressource")
             pass
         else:
             print("\n" + ips_profiles[i].get('name') + ":")
@@ -140,14 +136,12 @@ def get_ips_profiles(fg_url, cookies):
                     ips_location = entry.get("location").split()
                     severity = entry.get("severity").split()
                     action = entry.get("action")
-
                     packet_logging = entry.get("log-packet")
                     print(f"Location: {str(ips_location)}")
                     print(f"Severity: {str(severity)}")
                     print(f"Action: {action}")
                     print(f"Packet logging: {packet_logging}")
                     print("----------------------------")
-                    #print(str(ips_location) + " , " + str(severity) + " , " + action + " , "+ packet_logging)
 
 
 # Fetch SSL-VPN settings
@@ -158,7 +152,11 @@ def get_ssl_vpn(fg_url, cookies):
         'Content-Type': 'application/json'
     }
     response = requests.request("GET", vpn_url, headers=headers, cookies=cookies, verify=False, timeout=5)
-    allowed_hosts = response.json()["results"].get("source-address")
+    try:
+        results = response.json()["results"]
+    except requests.exceptions.JSONDecodeError:
+        return None
+    allowed_hosts = results.get("source-address")
     #if allowed_hosts[0]['name'] == "all":
 
     allowed_dict = {"Allowed groups": []}
@@ -178,30 +176,28 @@ def get_ha(fg_url, cookies):
         'Content-Type': 'application/json'
     }
     response = requests.request("GET", ha_url, headers=headers, cookies=cookies, verify=False, timeout=5)
-    results = response.json()['results']
+    try:
+        results = response.json().get('results')
+    except requests.exceptions.JSONDecodeError:
+        return None
     if results:
         if checksum_compare(results):
             print("\nFortigates are Synchronized\n")
         else:
             print("\nFortigates are NOT Synchronized\n")
-    else:
-        print("HA config not found")
 
 def get_config(fg_url,config):
     fg_cookies = logincheck(fg_url,config)
     print(f"\nFetching configuration for {fg_url}")
     get_info(fg_url,fg_cookies)
-    get_ha(fg_url,fg_cookies)
+    print(get_ha(fg_url,fg_cookies))
     get_ssl_vpn(fg_url,fg_cookies)
     get_ips_profiles(fg_url,fg_cookies)
 
 def main():
 
     config = load_config()
-    #fg_url  = config["fg_url"]
-    #fortitoken = int(input("Enter fortitoken:"))
     fg_url = config["fg_url55"]
-
     get_config(fg_url,config)
 
 if __name__ == '__main__':
