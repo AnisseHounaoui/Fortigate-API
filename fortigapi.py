@@ -197,7 +197,7 @@ def get_config(fg_url,config):
 def main():
 
     config = load_config()
-    fg_url = config["fg_url55"]
+    fg_url = config["fg_url"]
     get_config(fg_url,config)
 
 if __name__ == '__main__':
