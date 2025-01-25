@@ -39,6 +39,5 @@ Run python script (Implement arguments in future) and enter fortitoken:
 ```
 python.exe fortigapi.py
 ```
-![image](https://github.com/user-attachments/assets/9ee2d64d-6e01-4616-ae1c-2334713574a8)
 
 
