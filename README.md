@@ -16,4 +16,29 @@ Features:
 
 🔄 Create a GUI using tkinter to display config for all fortigates
 
-Modify config.json
+---
+## Installation:
+
+```
+python3 -m pip install -r requirements.txt
+```
+## Usage:
+
+
+Modify config.json file:
+
+```
+{
+  "username": "xxx",
+  "password": "xxx",
+  "fg_url": "Fortigate_URL"
+}
+```
+
+Run python script (Implement arguments in future) and enter fortitoken:
+```
+python.exe fortigapi.py
+```
+![image](https://github.com/user-attachments/assets/9ee2d64d-6e01-4616-ae1c-2334713574a8)
+
+
