@@ -15,3 +15,5 @@ Features:
 ✅ Handle exceptions to minimize login failures to the portals
 
 🔄 Create a GUI using tkinter to display config for all fortigates
+
+Modify config.json
