@@ -36,7 +36,7 @@ def load_cookies(session, cookie_file, fg_url):
         response = requests.get(test_url, headers=headers, cookies=session.cookies, verify=False, timeout=5)
         try:
             if response.json():  # verifying that response content is returned = cookies are valid
-                print(response.json())
+                #print(response.json())
                 return session.cookies
             else:
                 print("No results found in response.")
@@ -130,18 +130,20 @@ def get_ips_profiles(fg_url, cookies):
         else:
             print("\n" + ips_profiles[i].get('name') + ":")
             for entry in ips_profiles[i].get('entries'):
-                if entry.get("location") is None:
-                    pass
-                else:
+                if entry.get("location") is None and entry.get("rule"): #in case an IPS rule
+                    ips_rule = entry.get("rule")[0]["id"]
+                    print(f"Rule ID: {str(ips_rule)}")
+                else: #if location exists but not IPS rule
                     ips_location = entry.get("location").split()
                     severity = entry.get("severity").split()
-                    action = entry.get("action")
-                    packet_logging = entry.get("log-packet")
                     print(f"Location: {str(ips_location)}")
                     print(f"Severity: {str(severity)}")
-                    print(f"Action: {action}")
-                    print(f"Packet logging: {packet_logging}")
-                    print("----------------------------")
+
+                action = entry.get("action")
+                packet_logging = entry.get("log-packet")
+                print(f"Action: {action}")
+                print(f"Packet logging: {packet_logging}")
+                print("----------------------------")
 
 
 # Fetch SSL-VPN settings
