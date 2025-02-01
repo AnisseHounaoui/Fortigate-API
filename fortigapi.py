@@ -162,8 +162,29 @@ def get_ssl_vpn(fg_url, cookies):
     #if allowed_hosts[0]['name'] == "all":
 
     allowed_dict = {"Allowed groups": []}
+
+    members_grp = []
     for i in range(len(allowed_hosts)):
+        if allowed_hosts[i]["datasource"] == "firewall.addrgrp":
+            url = fg_url + "/api/v2/cmdb/firewall/addrgrp?vdom=root" #for addresse groups (countries...)
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            response = requests.request("GET", url, headers=headers, cookies=cookies, verify=False, timeout=5)
+            try:
+                res = response.json()["results"]
+            except requests.exceptions.JSONDecodeError:
+                return None
+            print(res)
+            for j in range(len(res)):
+                print(res[j]["name"])
+                if res[j]["name"] == allowed_hosts[i]["name"]:
+                    for k in range(len(res[j]["member"])):
+                        members_grp.append(res[j]["member"][k]["name"])
+            print(members_grp)
+            allowed_dict["Allowed groups"].append(members_grp)
         allowed_dict["Allowed groups"].append(allowed_hosts[i]["name"])
+
     print(f"\nAccess allowed to :{allowed_dict}")
 
 # Fetch HA status
